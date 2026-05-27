@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sales Dashboard España</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',sans-serif;background:#f0f2f5;color:#1a1a2e}
+header{background:linear-gradient(135deg,#1a1a2e,#16213e);color:#fff;padding:20px 32px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+header h1{font-size:1.4rem;font-weight:700}
+header span{font-size:.8rem;opacity:.6}
+.filters{background:#fff;padding:13px 32px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;border-bottom:1px solid #e8e8e8;box-shadow:0 1px 4px rgba(0,0,0,.05)}
+.filters label{font-size:.82rem;font-weight:600;color:#555}
+select{padding:7px 11px;border:1px solid #ddd;border-radius:7px;font-size:.82rem;cursor:pointer;background:#fafafa}
+.sep{color:#ccc;font-size:1.2rem}
+.btn{padding:7px 16px;background:#4361ee;color:#fff;border:none;border-radius:7px;font-size:.82rem;cursor:pointer;font-weight:600}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:13px;padding:20px 32px 6px}
+.kpi{background:#fff;border-radius:12px;padding:16px 18px;box-shadow:0 2px 10px rgba(0,0,0,.06);border-left:4px solid #4361ee}
+.kpi.g{border-color:#2ecc71}.kpi.a{border-color:#f39c12}.kpi.r{border-color:#e74c3c}.kpi.p{border-color:#9b59b6}
+.kpi-label{font-size:.7rem;color:#999;text-transform:uppercase;letter-spacing:.6px;margin-bottom:4px}
+.kpi-value{font-size:1.5rem;font-weight:800;line-height:1.1}
+.kpi-sub{font-size:.72rem;color:#bbb;margin-top:3px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:10px 32px 32px}
+.box{background:#fff;border-radius:12px;padding:20px 22px;box-shadow:0 2px 10px rgba(0,0,0,.06)}
+.box.full{grid-column:1/-1}
+.box-title{font-size:.9rem;font-weight:700;color:#333;margin-bottom:16px;display:flex;align-items:center;gap:7px}
+.tag{background:#f0f3ff;color:#4361ee;padding:2px 8px;border-radius:20px;font-size:.72rem;font-weight:600}
+table{width:100%;border-collapse:collapse;font-size:.79rem}
+th{background:#f7f8ff;padding:9px 11px;text-align:left;font-weight:700;color:#555;border-bottom:2px solid #e8ecff;white-space:nowrap}
+td{padding:8px 11px;border-bottom:1px solid #f2f2f2;white-space:nowrap}
+tr:hover td{background:#fafbff}
+.badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:.75rem;font-weight:700}
+.pos{background:#e8f8f0;color:#27ae60}.neg{background:#fef0f0;color:#e74c3c}
+@media(max-width:720px){.grid{grid-template-columns:1fr}.kpis{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<header>
+  <h1>📊 Sales Dashboard — España</h1>
+  <span id="ts"></span>
+</header>
+<div class="filters">
+  <label>Categoría:</label>
+  <select id="catSel" onchange="render()"><option value="all">Todas</option></select>
+  <label style="margin-left:6px">Desde:</label>
+  <select id="monDesde" onchange="render()"></select>
+  <span class="sep">→</span>
+  <label>Hasta:</label>
+  <select id="monHasta" onchange="render()"></select>
+</div>
+<div id="app"></div>
+
+<script>
+const rows = [
+  {cat:"top account",kpi:"Total Base","01/2025":5,"02/2025":5,"03/2025":5,"04/2025":5,"05/2025":5,"06/2025":5,"07/2025":5,"08/2025":5,"09/2025":5,"10/2025":5,"11/2025":5,"12/2025":5,"01/2026/Total":5,"02/2026/Total":5,"03/2026/Total":5,"04/2026/Total":5,"05/2026/Total":5},
+  {cat:"top account",kpi:"Con Compra","01/2025":5,"02/2025":5,"03/2025":5,"04/2025":5,"05/2025":5,"06/2025":5,"07/2025":5,"08/2025":5,"09/2025":5,"10/2025":5,"11/2025":5,"12/2025":5,"01/2026/Total":5,"02/2026/Total":5,"03/2026/Total":5,"04/2026/Total":5,"05/2026/Total":5},
+  {cat:"top account",kpi:"NR","01/2025":215256,"02/2025":235744,"03/2025":257929,"04/2025":237725,"05/2025":195234,"06/2025":225090,"07/2025":325852,"08/2025":310924,"09/2025":218586,"10/2025":200351,"11/2025":199018,"12/2025":135077,"01/2026/Total":167993,"02/2026/Total":166207,"03/2026/Total":193376,"04/2026/Total":141538,"05/2026/Total":83188,"01/2026/YoY":"-21,96%","02/2026/YoY":"-29,50%","03/2026/YoY":"-25,03%","04/2026/YoY":"-40,46%","05/2026/YoY":"-57,39%"},
+  {cat:"top account",kpi:"Selling Rate %","01/2025":1,"02/2025":1,"03/2025":1,"04/2025":1,"05/2025":1,"06/2025":1,"07/2025":1,"08/2025":1,"09/2025":1,"10/2025":1,"11/2025":1,"12/2025":1,"01/2026/Total":1,"02/2026/Total":1,"03/2026/Total":1,"04/2026/Total":1,"05/2026/Total":1},
+  {cat:"top account",kpi:"ARPA","01/2025":43051,"02/2025":47149,"03/2025":51586,"04/2025":47545,"05/2025":39047,"06/2025":45018,"07/2025":65170,"08/2025":62185,"09/2025":43717,"10/2025":40070,"11/2025":39804,"12/2025":27015,"01/2026/Total":33599,"02/2026/Total":33241,"03/2026/Total":38675,"04/2026/Total":28308,"05/2026/Total":16638},
+  {cat:"top account",kpi:"Captación nuevos","01/2025":0,"02/2025":0,"03/2025":0,"04/2025":0,"05/2025":0,"06/2025":0,"07/2025":0,"08/2025":0,"09/2025":0,"10/2025":0,"11/2025":0,"12/2025":0,"01/2026/Total":0,"02/2026/Total":0,"03/2026/Total":0,"04/2026/Total":0,"05/2026/Total":0},
+  {cat:"bloggers",kpi:"Total Base","01/2025":812,"02/2025":820,"03/2025":826,"04/2025":830,"05/2025":834,"06/2025":841,"07/2025":848,"08/2025":851,"09/2025":857,"10/2025":865,"11/2025":874,"12/2025":877,"01/2026/Total":884,"02/2026/Total":892,"03/2026/Total":898,"04/2026/Total":903,"05/2026/Total":906},
+  {cat:"bloggers",kpi:"Captación nuevos","01/2025":0,"02/2025":0,"03/2025":0,"04/2025":0,"05/2025":0,"06/2025":0,"07/2025":0,"08/2025":0,"09/2025":0,"10/2025":0,"11/2025":0,"12/2025":0,"01/2026/Total":6,"02/2026/Total":8,"03/2026/Total":6,"04/2026/Total":5,"05/2026/Total":3},
+  {cat:"bloggers",kpi:"Con Compra","01/2025":344,"02/2025":379,"03/2025":410,"04/2025":436,"05/2025":413,"06/2025":439,"07/2025":473,"08/2025":465,"09/2025":424,"10/2025":381,"11/2025":390,"12/2025":351,"01/2026/Total":324,"02/2026/Total":341,"03/2026/Total":383,"04/2026/Total":388,"05/2026/Total":308},
+  {cat:"bloggers",kpi:"NR","01/2025":117316,"02/2025":120439,"03/2025":145925,"04/2025":130802,"05/2025":123427,"06/2025":133472,"07/2025":208013,"08/2025":201364,"09/2025":108922,"10/2025":95550,"11/2025":87896,"12/2025":59137,"01/2026/Total":67829,"02/2026/Total":85577,"03/2026/Total":104325,"04/2026/Total":72990,"05/2026/Total":44316,"01/2026/YoY":"-42,18%","02/2026/YoY":"-28,95%","03/2026/YoY":"-28,51%","04/2026/YoY":"-44,20%","05/2026/YoY":"-64,10%"},
+  {cat:"bloggers",kpi:"Selling Rate %","01/2025":0.4236,"02/2025":0.4622,"03/2025":0.4964,"04/2025":0.5253,"05/2025":0.4952,"06/2025":0.522,"07/2025":0.5578,"08/2025":0.5464,"09/2025":0.4947,"10/2025":0.4405,"11/2025":0.4462,"12/2025":0.4002,"01/2026/Total":0.3665,"02/2026/Total":0.3823,"03/2026/Total":0.4265,"04/2026/Total":0.4297,"05/2026/Total":0.34},
+  {cat:"bloggers",kpi:"ARPA","01/2025":341,"02/2025":318,"03/2025":356,"04/2025":300,"05/2025":299,"06/2025":304,"07/2025":440,"08/2025":433,"09/2025":257,"10/2025":251,"11/2025":225,"12/2025":168,"01/2026/Total":209,"02/2026/Total":251,"03/2026/Total":272,"04/2026/Total":188,"05/2026/Total":144},
+  {cat:"vloggers",kpi:"Total Base","01/2025":74,"02/2025":76,"03/2025":80,"04/2025":80,"05/2025":81,"06/2025":82,"07/2025":87,"08/2025":87,"09/2025":89,"10/2025":90,"11/2025":94,"12/2025":94,"01/2026/Total":96,"02/2026/Total":96,"03/2026/Total":97,"04/2026/Total":100,"05/2026/Total":102},
+  {cat:"vloggers",kpi:"Captación nuevos","01/2025":0,"02/2025":0,"03/2025":0,"04/2025":0,"05/2025":0,"06/2025":0,"07/2025":0,"08/2025":0,"09/2025":0,"10/2025":0,"11/2025":0,"12/2025":0,"01/2026/Total":2,"02/2026/Total":0,"03/2026/Total":1,"04/2026/Total":3,"05/2026/Total":2},
+  {cat:"vloggers",kpi:"Con Compra","01/2025":26,"02/2025":30,"03/2025":28,"04/2025":32,"05/2025":32,"06/2025":32,"07/2025":33,"08/2025":30,"09/2025":31,"10/2025":27,"11/2025":32,"12/2025":20,"01/2026/Total":26,"02/2026/Total":27,"03/2026/Total":26,"04/2026/Total":25,"05/2026/Total":25},
+  {cat:"vloggers",kpi:"NR","01/2025":3934,"02/2025":4173,"03/2025":3943,"04/2025":3847,"05/2025":2983,"06/2025":3741,"07/2025":5470,"08/2025":5582,"09/2025":3015,"10/2025":2128,"11/2025":2612,"12/2025":1609,"01/2026/Total":3011,"02/2026/Total":2435,"03/2026/Total":2132,"04/2026/Total":2909,"05/2026/Total":2889,"01/2026/YoY":"-23,46%","02/2026/YoY":"-41,65%","03/2026/YoY":"-45,93%","04/2026/YoY":"-24,40%","05/2026/YoY":"-3,17%"},
+  {cat:"vloggers",kpi:"Selling Rate %","01/2025":0.3514,"02/2025":0.3947,"03/2025":0.35,"04/2025":0.4,"05/2025":0.3951,"06/2025":0.3902,"07/2025":0.3793,"08/2025":0.3448,"09/2025":0.3483,"10/2025":0.3,"11/2025":0.3404,"12/2025":0.2128,"01/2026/Total":0.2708,"02/2026/Total":0.2813,"03/2026/Total":0.268,"04/2026/Total":0.25,"05/2026/Total":0.2451},
+  {cat:"vloggers",kpi:"ARPA","01/2025":151,"02/2025":139,"03/2025":141,"04/2025":120,"05/2025":93,"06/2025":117,"07/2025":166,"08/2025":186,"09/2025":97,"10/2025":79,"11/2025":82,"12/2025":80,"01/2026/Total":116,"02/2026/Total":90,"03/2026/Total":82,"04/2026/Total":116,"05/2026/Total":116},
+  {cat:"influencers",kpi:"Total Base","01/2025":429,"02/2025":448,"03/2025":460,"04/2025":475,"05/2025":480,"06/2025":488,"07/2025":514,"08/2025":519,"09/2025":543,"10/2025":556,"11/2025":637,"12/2025":644,"01/2026/Total":665,"02/2026/Total":688,"03/2026/Total":714,"04/2026/Total":728,"05/2026/Total":732},
+  {cat:"influencers",kpi:"Captación nuevos","01/2025":0,"02/2025":0,"03/2025":0,"04/2025":0,"05/2025":0,"06/2025":0,"07/2025":0,"08/2025":0,"09/2025":0,"10/2025":0,"11/2025":0,"12/2025":0,"01/2026/Total":21,"02/2026/Total":23,"03/2026/Total":26,"04/2026/Total":14,"05/2026/Total":4},
+  {cat:"influencers",kpi:"Con Compra","01/2025":147,"02/2025":169,"03/2025":197,"04/2025":186,"05/2025":190,"06/2025":170,"07/2025":208,"08/2025":218,"09/2025":193,"10/2025":181,"11/2025":182,"12/2025":170,"01/2026/Total":152,"02/2026/Total":160,"03/2026/Total":188,"04/2026/Total":175,"05/2026/Total":131},
+  {cat:"influencers",kpi:"NR","01/2025":15439,"02/2025":16414,"03/2025":19168,"04/2025":17602,"05/2025":17454,"06/2025":17420,"07/2025":19589,"08/2025":21397,"09/2025":16940,"10/2025":16294,"11/2025":17561,"12/2025":12375,"01/2026/Total":18904,"02/2026/Total":16671,"03/2026/Total":19697,"04/2026/Total":13538,"05/2026/Total":8429,"01/2026/YoY":"22,44%","02/2026/YoY":"1,57%","03/2026/YoY":"2,76%","04/2026/YoY":"-23,09%","05/2026/YoY":"-51,71%"},
+  {cat:"influencers",kpi:"Selling Rate %","01/2025":0.3427,"02/2025":0.3772,"03/2025":0.4283,"04/2025":0.3916,"05/2025":0.3958,"06/2025":0.3484,"07/2025":0.4047,"08/2025":0.42,"09/2025":0.3554,"10/2025":0.3255,"11/2025":0.2857,"12/2025":0.264,"01/2026/Total":0.2286,"02/2026/Total":0.2326,"03/2026/Total":0.2633,"04/2026/Total":0.2404,"05/2026/Total":0.179},
+  {cat:"influencers",kpi:"ARPA","01/2025":105,"02/2025":97,"03/2025":97,"04/2025":95,"05/2025":92,"06/2025":102,"07/2025":94,"08/2025":98,"09/2025":88,"10/2025":90,"11/2025":96,"12/2025":73,"01/2026/Total":124,"02/2026/Total":104,"03/2026/Total":105,"04/2026/Total":77,"05/2026/Total":64},
+  {cat:"alojamiento",kpi:"Total Base","01/2025":73,"02/2025":73,"03/2025":73,"04/2025":74,"05/2025":74,"06/2025":75,"07/2025":76,"08/2025":76,"09/2025":76,"10/2025":76,"11/2025":77,"12/2025":77,"01/2026/Total":77,"02/2026/Total":77,"03/2026/Total":77,"04/2026/Total":77,"05/2026/Total":77},
+  {cat:"alojamiento",kpi:"Captación nuevos","01/2025":0,"02/2025":0,"03/2025":0,"04/2025":0,"05/2025":0,"06/2025":0,"07/2025":0,"08/2025":0,"09/2025":0,"10/2025":0,"11/2025":0,"12/2025":0,"01/2026/Total":0,"02/2026/Total":0,"03/2026/Total":0,"04/2026/Total":0,"05/2026/Total":0},
+  {cat:"alojamiento",kpi:"Con Compra","01/2025":21,"02/2025":23,"03/2025":19,"04/2025":27,"05/2025":24,"06/2025":22,"07/2025":26,"08/2025":24,"09/2025":23,"10/2025":22,"11/2025":17,"12/2025":25,"01/2026/Total":13,"02/2026/Total":15,"03/2026/Total":19,"04/2026/Total":23,"05/2026/Total":12},
+  {cat:"alojamiento",kpi:"NR","01/2025":713,"02/2025":666,"03/2025":662,"04/2025":1172,"05/2025":1656,"06/2025":2389,"07/2025":3730,"08/2025":4115,"09/2025":1929,"10/2025":1192,"11/2025":854,"12/2025":573,"01/2026/Total":890,"02/2026/Total":418,"03/2026/Total":956,"04/2026/Total":662,"05/2026/Total":496,"01/2026/YoY":"24,73%","02/2026/YoY":"-37,27%","03/2026/YoY":"44,52%","04/2026/YoY":"-43,52%","05/2026/YoY":"-70,05%"},
+  {cat:"alojamiento",kpi:"Selling Rate %","01/2025":0.2877,"02/2025":0.3151,"03/2025":0.2603,"04/2025":0.3649,"05/2025":0.3243,"06/2025":0.2933,"07/2025":0.3421,"08/2025":0.3158,"09/2025":0.3026,"10/2025":0.2895,"11/2025":0.2208,"12/2025":0.3247,"01/2026/Total":0.1688,"02/2026/Total":0.1948,"03/2026/Total":0.2468,"04/2026/Total":0.2987,"05/2026/Total":0.1558},
+  {cat:"alojamiento",kpi:"ARPA","01/2025":34,"02/2025":29,"03/2025":35,"04/2025":43,"05/2025":69,"06/2025":109,"07/2025":143,"08/2025":171,"09/2025":84,"10/2025":54,"11/2025":50,"12/2025":23,"01/2026/Total":68,"02/2026/Total":28,"03/2026/Total":50,"04/2026/Total":29,"05/2026/Total":41},
+  {cat:"transporte",kpi:"Total Base","01/2025":9,"02/2025":11,"03/2025":11,"04/2025":11,"05/2025":12,"06/2025":14,"07/2025":14,"08/2025":14,"09/2025":14,"10/2025":14,"11/2025":14,"12/2025":14,"01/2026/Total":14,"02/2026/Total":14,"03/2026/Total":14,"04/2026/Total":14,"05/2026/Total":14},
+  {cat:"transporte",kpi:"Captación nuevos","01/2025":0,"02/2025":0,"03/2025":0,"04/2025":0,"05/2025":0,"06/2025":0,"07/2025":0,"08/2025":0,"09/2025":0,"10/2025":0,"11/2025":0,"12/2025":0,"01/2026/Total":0,"02/2026/Total":0,"03/2026/Total":0,"04/2026/Total":0,"05/2026/Total":0},
+  {cat:"transporte",kpi:"Con Compra","01/2025":4,"02/2025":2,"03/2025":3,"04/2025":3,"05/2025":6,"06/2025":3,"07/2025":8,"08/2025":6,"09/2025":5,"10/2025":5,"11/2025":5,"12/2025":3,"01/2026/Total":4,"02/2026/Total":5,"03/2026/Total":6,"04/2026/Total":8,"05/2026/Total":9},
+  {cat:"transporte",kpi:"NR","01/2025":345,"02/2025":362,"03/2025":584,"04/2025":321,"05/2025":828,"06/2025":362,"07/2025":1040,"08/2025":1034,"09/2025":370,"10/2025":533,"11/2025":470,"12/2025":174,"01/2026/Total":285,"02/2026/Total":585,"03/2026/Total":2419,"04/2026/Total":1710,"05/2026/Total":872,"01/2026/YoY":"-17,39%","02/2026/YoY":"61,46%","03/2026/YoY":"314,18%","04/2026/YoY":"432,52%","05/2026/YoY":"5,35%"},
+  {cat:"transporte",kpi:"Selling Rate %","01/2025":0.4444,"02/2025":0.1818,"03/2025":0.2727,"04/2025":0.2727,"05/2025":0.5,"06/2025":0.2143,"07/2025":0.5714,"08/2025":0.4286,"09/2025":0.3571,"10/2025":0.3571,"11/2025":0.3571,"12/2025":0.2143,"01/2026/Total":0.2857,"02/2026/Total":0.3571,"03/2026/Total":0.4286,"04/2026/Total":0.5714,"05/2026/Total":0.6429},
+  {cat:"transporte",kpi:"ARPA","01/2025":86,"02/2025":181,"03/2025":195,"04/2025":107,"05/2025":138,"06/2025":121,"07/2025":130,"08/2025":172,"09/2025":74,"10/2025":107,"11/2025":94,"12/2025":58,"01/2026/Total":71,"02/2026/Total":117,"03/2026/Total":403,"04/2026/Total":214,"05/2026/Total":97},
+  {cat:"loyalty",kpi:"Total Base","01/2025":2,"02/2025":2,"03/2025":2,"04/2025":2,"05/2025":2,"06/2025":2,"07/2025":2,"08/2025":2,"09/2025":2,"10/2025":2,"11/2025":2,"12/2025":2,"01/2026/Total":2,"02/2026/Total":3,"03/2026/Total":5,"04/2026/Total":5,"05/2026/Total":5},
+  {cat:"loyalty",kpi:"Captación nuevos","01/2025":0,"02/2025":0,"03/2025":0,"04/2025":0,"05/2025":0,"06/2025":0,"07/2025":0,"08/2025":0,"09/2025":0,"10/2025":0,"11/2025":0,"12/2025":0,"01/2026/Total":0,"02/2026/Total":1,"03/2026/Total":2,"04/2026/Total":0,"05/2026/Total":0},
+  {cat:"loyalty",kpi:"Con Compra","01/2025":1,"02/2025":1,"03/2025":1,"04/2025":1,"05/2025":1,"06/2025":2,"07/2025":2,"08/2025":2,"09/2025":2,"10/2025":2,"11/2025":2,"12/2025":2,"01/2026/Total":2,"02/2026/Total":2,"03/2026/Total":4,"04/2026/Total":4,"05/2026/Total":5},
+  {cat:"loyalty",kpi:"NR","01/2025":697,"02/2025":992,"03/2025":606,"04/2025":388,"05/2025":289,"06/2025":383,"07/2025":4455,"08/2025":3951,"09/2025":1529,"10/2025":1284,"11/2025":1688,"12/2025":1524,"01/2026/Total":792,"02/2026/Total":2077,"03/2026/Total":3181,"04/2026/Total":13435,"05/2026/Total":7598,"01/2026/YoY":"13,62%","02/2026/YoY":"109,41%","03/2026/YoY":"424,50%","04/2026/YoY":"3362,50%","05/2026/YoY":"2532,03%"},
+  {cat:"loyalty",kpi:"Selling Rate %","01/2025":0.5,"02/2025":0.5,"03/2025":0.5,"04/2025":0.5,"05/2025":0.5,"06/2025":1,"07/2025":1,"08/2025":1,"09/2025":1,"10/2025":1,"11/2025":1,"12/2025":1,"01/2026/Total":1,"02/2026/Total":0.6667,"03/2026/Total":0.8,"04/2026/Total":0.8,"05/2026/Total":1},
+  {cat:"loyalty",kpi:"ARPA","01/2025":697,"02/2025":992,"03/2025":606,"04/2025":388,"05/2025":289,"06/2025":191,"07/2025":2227,"08/2025":1976,"09/2025":764,"10/2025":642,"11/2025":844,"12/2025":762,"01/2026/Total":396,"02/2026/Total":1038,"03/2026/Total":795,"04/2026/Total":3359,"05/2026/Total":1520},
+  {cat:"other",kpi:"Total Base","01/2025":253,"02/2025":254,"03/2025":258,"04/2025":259,"05/2025":263,"06/2025":263,"07/2025":265,"08/2025":266,"09/2025":271,"10/2025":276,"11/2025":277,"12/2025":278,"01/2026/Total":282,"02/2026/Total":289,"03/2026/Total":294,"04/2026/Total":302,"05/2026/Total":310},
+  {cat:"other",kpi:"Captación nuevos","01/2025":0,"02/2025":0,"03/2025":0,"04/2025":0,"05/2025":0,"06/2025":0,"07/2025":0,"08/2025":0,"09/2025":0,"10/2025":0,"11/2025":0,"12/2025":0,"01/2026/Total":4,"02/2026/Total":7,"03/2026/Total":5,"04/2026/Total":8,"05/2026/Total":8},
+  {cat:"other",kpi:"Con Compra","01/2025":77,"02/2025":82,"03/2025":94,"04/2025":91,"05/2025":79,"06/2025":83,"07/2025":94,"08/2025":113,"09/2025":84,"10/2025":76,"11/2025":75,"12/2025":62,"01/2026/Total":60,"02/2026/Total":72,"03/2026/Total":76,"04/2026/Total":66,"05/2026/Total":58},
+  {cat:"other",kpi:"NR","01/2025":5151,"02/2025":6989,"03/2025":7371,"04/2025":9199,"05/2025":7052,"06/2025":9551,"07/2025":12336,"08/2025":12339,"09/2025":6932,"10/2025":6625,"11/2025":4726,"12/2025":3664,"01/2026/Total":5255,"02/2026/Total":5759,"03/2026/Total":9948,"04/2026/Total":8945,"05/2026/Total":5847,"01/2026/YoY":"2,03%","02/2026/YoY":"-17,60%","03/2026/YoY":"34,96%","04/2026/YoY":"-2,76%","05/2026/YoY":"-17,09%"},
+  {cat:"other",kpi:"Selling Rate %","01/2025":0.3043,"02/2025":0.3228,"03/2025":0.3643,"04/2025":0.3514,"05/2025":0.3004,"06/2025":0.3156,"07/2025":0.3547,"08/2025":0.4248,"09/2025":0.31,"10/2025":0.2754,"11/2025":0.2708,"12/2025":0.223,"01/2026/Total":0.2128,"02/2026/Total":0.2491,"03/2026/Total":0.2585,"04/2026/Total":0.2185,"05/2026/Total":0.1871},
+  {cat:"other",kpi:"ARPA","01/2025":67,"02/2025":85,"03/2025":78,"04/2025":101,"05/2025":89,"06/2025":115,"07/2025":131,"08/2025":109,"09/2025":83,"10/2025":87,"11/2025":63,"12/2025":59,"01/2026/Total":88,"02/2026/Total":80,"03/2026/Total":131,"04/2026/Total":136,"05/2026/Total":101},
+  {cat:"accommodation",kpi:"Total Base","01/2025":939,"02/2025":942,"03/2025":942,"04/2025":945,"05/2025":945,"06/2025":946,"07/2025":961,"08/2025":961,"09/2025":962,"10/2025":982,"11/2025":1000,"12/2025":1008,"01/2026/Total":1193,"02/2026/Total":1208,"03/2026/Total":1234,"04/2026/Total":1257,"05/2026/Total":1273},
+  {cat:"accommodation",kpi:"Captación nuevos","01/2025":0,"02/2025":0,"03/2025":0,"04/2025":0,"05/2025":0,"06/2025":0,"07/2025":0,"08/2025":0,"09/2025":0,"10/2025":0,"11/2025":0,"12/2025":0,"01/2026/Total":12,"02/2026/Total":15,"03/2026/Total":26,"04/2026/Total":23,"05/2026/Total":16},
+  {cat:"accommodation",kpi:"Con Compra","01/2025":152,"02/2025":144,"03/2025":148,"04/2025":138,"05/2025":145,"06/2025":151,"07/2025":162,"08/2025":179,"09/2025":152,"10/2025":162,"11/2025":132,"12/2025":128,"01/2026/Total":114,"02/2026/Total":113,"03/2026/Total":159,"04/2026/Total":142,"05/2026/Total":104},
+  {cat:"accommodation",kpi:"NR","01/2025":3586,"02/2025":2759,"03/2025":3367,"04/2025":3133,"05/2025":2697,"06/2025":3267,"07/2025":4292,"08/2025":5168,"09/2025":3554,"10/2025":3400,"11/2025":2420,"12/2025":1816,"01/2026/Total":2308,"02/2026/Total":1808,"03/2026/Total":3664,"04/2026/Total":2803,"05/2026/Total":2046,"01/2026/YoY":"-35,64%","02/2026/YoY":"-34,45%","03/2026/YoY":"8,82%","04/2026/YoY":"-10,55%","05/2026/YoY":"-24,12%"},
+  {cat:"accommodation",kpi:"Selling Rate %","01/2025":0.1619,"02/2025":0.1529,"03/2025":0.1571,"04/2025":0.146,"05/2025":0.1534,"06/2025":0.1596,"07/2025":0.1686,"08/2025":0.1863,"09/2025":0.158,"10/2025":0.165,"11/2025":0.132,"12/2025":0.127,"01/2026/Total":0.0956,"02/2026/Total":0.0935,"03/2026/Total":0.1288,"04/2026/Total":0.113,"05/2026/Total":0.0817},
+  {cat:"accommodation",kpi:"ARPA","01/2025":24,"02/2025":19,"03/2025":23,"04/2025":23,"05/2025":19,"06/2025":22,"07/2025":27,"08/2025":29,"09/2025":23,"10/2025":21,"11/2025":18,"12/2025":14,"01/2026/Total":20,"02/2026/Total":16,"03/2026/Total":23,"04/2026/Total":20,"05/2026/Total":20},
+  {cat:"other markets",kpi:"Total Base","01/2025":0,"02/2025":0,"03/2025":0,"04/2025":0,"05/2025":0,"06/2025":0,"07/2025":0,"08/2025":0,"09/2025":0,"10/2025":0,"11/2025":0,"12/2025":0,"01/2026/Total":0,"02/2026/Total":0,"03/2026/Total":0,"04/2026/Total":0,"05/2026/Total":0},
+  {cat:"other markets",kpi:"Captación nuevos","01/2025":0,"02/2025":0,"03/2025":0,"04/2025":0,"05/2025":0,"06/2025":0,"07/2025":0,"08/2025":0,"09/2025":0,"10/2025":0,"11/2025":0,"12/2025":0,"01/2026/Total":0,"02/2026/Total":0,"03/2026/Total":0,"04/2026/Total":0,"05/2026/Total":0},
+  {cat:"other markets",kpi:"Con Compra","01/2025":108,"02/2025":116,"03/2025":147,"04/2025":167,"05/2025":159,"06/2025":149,"07/2025":171,"08/2025":198,"09/2025":154,"10/2025":148,"11/2025":106,"12/2025":124,"01/2026/Total":104,"02/2026/Total":107,"03/2026/Total":136,"04/2026/Total":124,"05/2026/Total":105},
+  {cat:"other markets",kpi:"NR","01/2025":7755,"02/2025":9489,"03/2025":10807,"04/2025":14396,"05/2025":10013,"06/2025":12314,"07/2025":13350,"08/2025":17607,"09/2025":11297,"10/2025":8444,"11/2025":8851,"12/2025":5377,"01/2026/Total":6681,"02/2026/Total":6262,"03/2026/Total":9567,"04/2026/Total":8223,"05/2026/Total":4901,"01/2026/YoY":"-13,85%","02/2026/YoY":"-34,00%","03/2026/YoY":"-11,47%","04/2026/YoY":"-42,88%","05/2026/YoY":"-51,05%"},
+  {cat:"other markets",kpi:"Selling Rate %","01/2025":0,"02/2025":0,"03/2025":0,"04/2025":0,"05/2025":0,"06/2025":0,"07/2025":0,"08/2025":0,"09/2025":0,"10/2025":0,"11/2025":0,"12/2025":0,"01/2026/Total":0,"02/2026/Total":0,"03/2026/Total":0,"04/2026/Total":0,"05/2026/Total":0},
+  {cat:"other markets",kpi:"ARPA","01/2025":72,"02/2025":82,"03/2025":74,"04/2025":86,"05/2025":63,"06/2025":83,"07/2025":78,"08/2025":89,"09/2025":73,"10/2025":57,"11/2025":84,"12/2025":43,"01/2026/Total":64,"02/2026/Total":59,"03/2026/Total":70,"04/2026/Total":66,"05/2026/Total":47}
+];
+
+const ALL_MESES=['01/2025','02/2025','03/2025','04/2025','05/2025','06/2025','07/2025','08/2025','09/2025','10/2025','11/2025','12/2025','01/2026','02/2026','03/2026','04/2026','05/2026'];
+const MLABEL={'01/2025':'Ene 25','02/2025':'Feb 25','03/2025':'Mar 25','04/2025':'Abr 25','05/2025':'May 25','06/2025':'Jun 25','07/2025':'Jul 25','08/2025':'Ago 25','09/2025':'Sep 25','10/2025':'Oct 25','11/2025':'Nov 25','12/2025':'Dic 25','01/2026':'Ene 26','02/2026':'Feb 26','03/2026':'Mar 26','04/2026':'Abr 26','05/2026':'May 26'};
+const MESES_2026=['01/2026','02/2026','03/2026','04/2026','05/2026'];
+const COLORS=['#4361ee','#e63946','#2ecc71','#f39c12','#9b59b6','#1abc9c','#e67e22','#3498db','#e91e63','#00b4d8','#588157','#bc6c25'];
+let charts={};
+
+function getRow(cat,kpi){return rows.find(r=>r.cat===cat&&r.kpi===kpi);}
+function getV(cat,kpi,mes){
+  const r=getRow(cat,kpi); if(!r)return 0;
+  const k=mes.includes('2025')?mes:(mes+'/Total');
+  return Number(r[k])||0;
+}
+function getYoY(cat,mes){
+  const r=getRow(cat,'NR'); if(!r)return '';
+  return r[mes+'/YoY']||'';
+}
+const fE=n=>n?new Intl.NumberFormat('es-ES',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(n):'—';
+const fN=n=>new Intl.NumberFormat('es-ES',{maximumFractionDigits:0}).format(n||0);
+function cats(){return[...new Set(rows.map(r=>r.cat))];}
+function fCats(){const v=document.getElementById('catSel').value;return v==='all'?cats():[v];}
+function selMeses(){
+  const d=document.getElementById('monDesde').value,h=document.getElementById('monHasta').value;
+  const di=ALL_MESES.indexOf(d),hi=ALL_MESES.indexOf(h);
+  return(di<0||hi<0||di>hi)?ALL_MESES:ALL_MESES.slice(di,hi+1);
+}
+function lastM(){const s=selMeses();return s[s.length-1];}
+function destroyC(){Object.values(charts).forEach(c=>c.destroy());charts={};}
+
+function setup(){
+  const cs=cats();
+  document.getElementById('catSel').innerHTML='<option value="all">Todas</option>'+cs.map(c=>`<option value="${c}">${c}</option>`).join('');
+  const opts=ALL_MESES.map(m=>`<option value="${m}">${MLABEL[m]}</option>`).join('');
+  document.getElementById('monDesde').innerHTML=opts;
+  document.getElementById('monHasta').innerHTML=opts;
+  document.getElementById('monDesde').value='01/2025';
+  const avail=MESES_2026.filter(m=>cs.some(c=>getV(c,'NR',m)>0));
+  document.getElementById('monHasta').value=avail.length?avail[avail.length-1]:'05/2026';
+  document.getElementById('ts').textContent='Datos: Mayo 2026';
+  render();
+}
+
+function render(){
+  destroyC();
+  const fc=fCats(),meses=selMeses(),lm=lastM(),lmL=MLABEL[lm]||lm,mL=meses.map(m=>MLABEL[m]);
+  document.getElementById('app').innerHTML=`
+    <div class="kpis" id="kpis"></div>
+    <div class="grid">
+      <div class="box full"><div class="box-title">📈 NR por categoría <span class="tag">evolución · €</span></div><canvas id="cNR" height="85"></canvas></div>
+      <div class="box"><div class="box-title">📊 YoY NR <span class="tag">${lmL}</span></div><canvas id="cYoY" height="180"></canvas></div>
+      <div class="box"><div class="box-title">🎯 Selling Rate % <span class="tag">${lmL}</span></div><canvas id="cSR" height="180"></canvas></div>
+      <div class="box full"><div class="box-title">🛒 Con Compra — evolución</div><canvas id="cCC" height="85"></canvas></div>
+      <div class="box full"><div class="box-title">💰 ARPA <span class="tag">evolución · €</span></div><canvas id="cARPA" height="85"></canvas></div>
+      <div class="box full"><div class="box-title">📋 Tabla resumen <span class="tag">${lmL}</span></div><div id="tbl"></div></div>
+    </div>`;
+
+  const totNR=fc.reduce((s,c)=>s+getV(c,'NR',lm),0);
+  const totBase=fc.reduce((s,c)=>s+getV(c,'Total Base',lm),0);
+  const totCC=fc.reduce((s,c)=>s+getV(c,'Con Compra',lm),0);
+  const totCap=fc.reduce((s,c)=>s+getV(c,'Captación nuevos',lm),0);
+  const avgSR=fc.length?fc.reduce((s,c)=>s+getV(c,'Selling Rate %',lm),0)/fc.length:0;
+
+  document.getElementById('kpis').innerHTML=`
+    <div class="kpi"><div class="kpi-label">NR Total</div><div class="kpi-value">${fE(totNR)}</div><div class="kpi-sub">${lmL}</div></div>
+    <div class="kpi g"><div class="kpi-label">Total Base</div><div class="kpi-value">${fN(totBase)}</div><div class="kpi-sub">clientes</div></div>
+    <div class="kpi a"><div class="kpi-label">Con Compra</div><div class="kpi-value">${fN(totCC)}</div><div class="kpi-sub">${lmL}</div></div>
+    <div class="kpi p"><div class="kpi-label">Captación nuevos</div><div class="kpi-value">${fN(totCap)}</div><div class="kpi-sub">${lmL}</div></div>
+    <div class="kpi r"><div class="kpi-label">Selling Rate medio</div><div class="kpi-value">${(avgSR*100).toFixed(1)}%</div><div class="kpi-sub">promedio</div></div>`;
+
+  charts.cNR=new Chart(document.getElementById('cNR'),{type:'line',data:{labels:mL,datasets:fc.map((c,i)=>({label:c,data:meses.map(m=>getV(c,'NR',m)),borderColor:COLORS[i%COLORS.length],backgroundColor:COLORS[i%COLORS.length]+'15',tension:.35,fill:false,pointRadius:4,borderWidth:2.5}))},options:{responsive:true,interaction:{mode:'index',intersect:false},plugins:{legend:{position:'bottom',labels:{boxWidth:12,font:{size:11},padding:14}}},scales:{y:{ticks:{callback:v=>'€'+fN(v)},grid:{color:'#f5f5f5'}},x:{grid:{display:false}}}}});
+
+  const yV=fc.map(c=>{const r=getYoY(c,lm);return r?parseFloat(r.replace('%','').replace(',','.'))||0:0;});
+  charts.cYoY=new Chart(document.getElementById('cYoY'),{type:'bar',data:{labels:fc,datasets:[{data:yV,backgroundColor:yV.map(v=>v>=0?'#2ecc7199':'#e74c3c99'),borderColor:yV.map(v=>v>=0?'#2ecc71':'#e74c3c'),borderWidth:1.5,borderRadius:5}]},options:{indexAxis:'y',responsive:true,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>ctx.raw.toFixed(1)+'%'}}},scales:{x:{ticks:{callback:v=>v+'%'},grid:{color:'#f5f5f5'}},y:{grid:{display:false}}}}});
+
+  charts.cSR=new Chart(document.getElementById('cSR'),{type:'bar',data:{labels:fc,datasets:[{data:fc.map(c=>getV(c,'Selling Rate %',lm)*100),backgroundColor:COLORS.map(c=>c+'aa'),borderWidth:0,borderRadius:5}]},options:{indexAxis:'y',responsive:true,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>ctx.raw.toFixed(1)+'%'}}},scales:{x:{max:100,ticks:{callback:v=>v+'%'},grid:{color:'#f5f5f5'}},y:{grid:{display:false}}}}});
+
+  charts.cCC=new Chart(document.getElementById('cCC'),{type:'bar',data:{labels:mL,datasets:fc.map((c,i)=>({label:c,data:meses.map(m=>getV(c,'Con Compra',m)),backgroundColor:COLORS[i%COLORS.length]+'cc',borderRadius:3}))},options:{responsive:true,interaction:{mode:'index',intersect:false},plugins:{legend:{position:'bottom',labels:{boxWidth:12,font:{size:11},padding:14}}},scales:{x:{grid:{display:false}},y:{grid:{color:'#f5f5f5'}}}}});
+
+  charts.cARPA=new Chart(document.getElementById('cARPA'),{type:'line',data:{labels:mL,datasets:fc.map((c,i)=>({label:c,data:meses.map(m=>getV(c,'ARPA',m)),borderColor:COLORS[i%COLORS.length],backgroundColor:COLORS[i%COLORS.length]+'15',tension:.35,fill:false,pointRadius:4,borderWidth:2.5}))},options:{responsive:true,interaction:{mode:'index',intersect:false},plugins:{legend:{position:'bottom',labels:{boxWidth:12,font:{size:11},padding:14}}},scales:{y:{ticks:{callback:v=>'€'+fN(v)},grid:{color:'#f5f5f5'}},x:{grid:{display:false}}}}});
+
+  const kpis=['Total Base','Captación nuevos','Con Compra','NR','ARPA','Selling Rate %'];
+  let t=`<table><thead><tr><th>Categoría</th>${kpis.map(k=>`<th>${k}</th>`).join('')}<th>YoY NR</th></tr></thead><tbody>`;
+  fc.forEach(c=>{
+    t+=`<tr><td><strong>${c}</strong></td>`;
+    kpis.forEach(k=>{
+      const v=getV(c,k,lm);
+      const d=k==='NR'||k==='ARPA'?fE(v):k.includes('%')?(v*100).toFixed(1)+'%':fN(v);
+      t+=`<td>${d}</td>`;
+    });
+    const yr=getYoY(c,lm);
+    const yn=yr?parseFloat(yr.replace('%','').replace(',','.'))||0:0;
+    t+=`<td><span class="badge ${yn>=0?'pos':'neg'}">${yr||'—'}</span></td></tr>`;
+  });
+  t+='</tbody></table>';
+  document.getElementById('tbl').innerHTML=t;
+}
+
+setup();
+</script>
+</body>
+</html>
